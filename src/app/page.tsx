@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
 import { DitheringShader } from "@/components/ui/dithering-shader";
 import { GlowingEffect } from "@/components/ui/glowing-effect";
-import KomodoTerminal from "@/components/ui/komodo-terminal";
 import ScrollReveal from "@/components/ui/scroll-reveal";
 import FeatureShowcase from "@/components/ui/feature-showcase";
 
@@ -47,78 +45,6 @@ function GlowingCard({
 
 export default function Home() {
   const lines = KOMODO_ART.split("\n");
-  const terminalContainerRef = useRef<HTMLElement>(null);
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const [isTerminalLocked, setIsTerminalLocked] = useState(false);
-  const scrollAccumulator = useRef(0);
-  const lastScrollY = useRef(0);
-
-  // Scroll lock threshold - user must scroll this much to break out
-  const SCROLL_THRESHOLD = 150;
-
-  const handleWheel = useCallback((e: WheelEvent) => {
-    if (!isTerminalLocked) return;
-
-    // Only lock when scrolling down
-    if (e.deltaY > 0) {
-      e.preventDefault();
-      scrollAccumulator.current += e.deltaY;
-
-      // If user has scrolled enough, unlock and continue
-      if (scrollAccumulator.current >= SCROLL_THRESHOLD) {
-        setIsTerminalLocked(false);
-        scrollAccumulator.current = 0;
-      }
-    }
-  }, [isTerminalLocked]);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!terminalContainerRef.current) return;
-
-      const rect = terminalContainerRef.current.getBoundingClientRect();
-      const windowHeight = window.innerHeight;
-
-      // Progress based on how far the section has scrolled up
-      const startPoint = windowHeight * 0.5;
-      const endPoint = 0;
-
-      let progress = (startPoint - rect.top) / (startPoint - endPoint);
-      progress = Math.max(0, Math.min(1, progress));
-
-      // Only update state if progress actually changed (avoid unnecessary re-renders)
-      setScrollProgress((prev) => {
-        // Once we hit 1, don't update anymore to prevent scroll glitches in fullscreen terminal
-        if (prev === 1 && progress >= 1) return prev;
-        // Round to 2 decimal places to reduce update frequency
-        const rounded = Math.round(progress * 100) / 100;
-        if (rounded === prev) return prev;
-        return rounded;
-      });
-
-      // Lock terminal when it becomes fullscreen
-      if (progress >= 1 && !isTerminalLocked && window.scrollY > lastScrollY.current) {
-        setIsTerminalLocked(true);
-        scrollAccumulator.current = 0;
-      }
-
-      lastScrollY.current = window.scrollY;
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [isTerminalLocked]);
-
-  useEffect(() => {
-    if (isTerminalLocked) {
-      window.addEventListener("wheel", handleWheel, { passive: false });
-    }
-    return () => {
-      window.removeEventListener("wheel", handleWheel);
-    };
-  }, [isTerminalLocked, handleWheel]);
 
   return (
     <div className="min-h-screen w-full bg-[#0a0e14]">
@@ -202,47 +128,6 @@ pip install accelerate
 # and handles all dependencies.`}
             </pre>
           </GlowingCard>
-        </div>
-      </section>
-
-      {/* Interactive Terminal Section */}
-      <section
-        ref={terminalContainerRef}
-        className="relative z-10"
-        style={{ minHeight: "100vh" }}
-      >
-        {/* Sticky container - anchored to bottom */}
-        <div className="sticky top-0 h-screen flex flex-col items-center justify-end pb-0">
-          {/* Header text - fades out */}
-          <div
-            className="text-center mb-8 px-6 absolute top-24"
-            style={{
-              opacity: 1 - scrollProgress * 2,
-              transform: `translateY(${-scrollProgress * 30}px)`,
-              pointerEvents: scrollProgress > 0.3 ? "none" : "auto",
-            }}
-          >
-            <h2 className="mb-4 text-4xl font-bold text-white md:text-5xl">
-              Try It <span className="text-[#98d998]">Yourself</span>
-            </h2>
-            <p className="text-lg leading-relaxed text-gray-300 md:text-xl">
-              Explore Komodo&apos;s commands in this interactive terminal.
-            </p>
-          </div>
-
-          {/* Terminal - expands downward from top, bottom anchored to viewport bottom */}
-          <div
-            className="overflow-hidden"
-            style={{
-              width: `${50 + scrollProgress * 50}%`,
-              maxWidth: "100vw",
-              height: `${35 + scrollProgress * 65}vh`,
-              borderRadius: `${12 * (1 - scrollProgress)}px ${12 * (1 - scrollProgress)}px 0 0`,
-              transition: "none",
-            }}
-          >
-            <KomodoTerminal />
-          </div>
         </div>
       </section>
 
